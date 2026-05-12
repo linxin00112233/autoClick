@@ -21,8 +21,8 @@ jobs:
         run: |
           # 给予 gradlew 执行权限
           chmod +x gradlew
-          # 开始编译，-x lint 是为了跳过不必要的代码检查，加快速度
-          ./gradlew assembleDebug -x lint
+          # 直接运行 assembleDebug
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
