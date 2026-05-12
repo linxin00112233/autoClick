@@ -1,0 +1,10 @@
+{
+  "name": "autox-app",
+  "version": "1.0.0",
+  "description": "AutoX.js APK",
+  "scripts": {
+    "build-android": "cordova build android --release"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
