@@ -2,7 +2,7 @@ name: AutoX Build Final
 
 on:
   push:
-    branches: [ "main" ] # 或者是你的主分支名
+    branches: ["main"] # 兼容不同分支名
 
 jobs:
   build:
@@ -17,16 +17,30 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
+      - name: Fix Path and Permissions
+        run: |
+          # 确保脚本权限
+          chmod +x gradlew
+          # 确保资产目录存在（防止你漏建文件夹）
+          mkdir -p app/src/main/assets/project
+          # 如果根目录有这些文件，自动同步进去
+          [ -f main.js ] && cp main.js app/src/main/assets/project/ || echo "No main.js found in root"
+          [ -f project.json ] && cp project.json app/src/main/assets/project/ || echo "No project.json found in root"
+          [ -f icon.png ] && cp icon.png app/src/main/assets/project/ || echo "No icon.png found in root"
+
+      - name: Upgrade Gradle Environment
+        run: |
+          # 升级 Gradle 版本以解决 "NumberFormatException: 34x" 的兼容性报错
+          ./gradlew wrapper --gradle-version 7.5
+
       - name: Build APK with Gradle
         run: |
-          # 给予 gradlew 执行权限
-          chmod +x gradlew
-          # 直接运行 assembleDebug
-          ./gradlew :app:assembleDebug
+          # 使用 :app:assembleDebug 强制指向主模块，跳过 lint 检查
+          ./gradlew :app:assembleDebug -x lint
 
-      - name: Upload APK
+      - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Rapid-Hunter-App
-          # 这是编译后 APK 存放的标准位置
+          # 匹配编译出的 APK
           path: app/build/outputs/apk/debug/*.apk
