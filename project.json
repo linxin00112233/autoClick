@@ -1,0 +1,12 @@
+{
+  "name": "极速抢购助手",
+  "main": "main.js",
+  "packageName": "com.hunter.rapid",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "icon": "icon.png", 
+  "permissions": [
+    "accessibility_service",
+    "float_window"
+  ]
+}
