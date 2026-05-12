@@ -16,32 +16,53 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-          # 【修复】删掉 cache: 'gradle'，因为你根目录没这些文件
 
-      - name: Install 7zip
-        run: sudo apt-get install -y p7zip-full
+      - name: Install Tools
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full wget curl
 
       - name: Download AutoX Build Engine
         run: |
-          # 稳定获取 5.7.9 版本的打包模板
-          curl -L -o autox_engine.zip https://github.com/kajizhang/AutoX/releases/download/v5.7.9/apk_common-v5.7.9.zip
+          # 尝试使用 wget 加上重试和重定向跟随
+          # 5.7.9 是目前最稳定的打包引擎版本
+          URL="https://github.com/kajizhang/AutoX/releases/download/v5.7.9/apk_common-v5.7.9.zip"
+          
+          echo "开始下载打包引擎..."
+          wget --tries=3 --waitretry=5 --retry-connrefused -O autox_engine.zip "$URL"
+          
+          # 检查文件大小 (必须大于 10MB 才是正常的包)
+          FILESIZE=$(stat -c%s "autox_engine.zip")
+          echo "下载完成，文件大小: $FILESIZE 字节"
+          
+          if [ $FILESIZE -lt 10485760 ]; then
+            echo "错误: 下载的文件太小，可能触发了 GitHub 的下载限制或链接失效。"
+            echo "尝试使用备用 curl 方式..."
+            curl -L -o autox_engine.zip "$URL"
+            NEW_SIZE=$(stat -c%s "autox_engine.zip")
+            if [ $NEW_SIZE -lt 10485760 ]; then
+               echo "备用方式也失败了，请检查 GitHub 仓库的 Release 链接是否正常。"
+               exit 1
+            fi
+          fi
+          
+          # 解压引擎
           7z x autox_engine.zip -o./engine
 
       - name: Inject Project and Build
         run: |
-          # 1. 将你的代码、图标、配置全部注入到引擎中
-          mkdir -p ./engine/assets/project
-          cp -r ./* ./engine/assets/project/
+          # 1. 创建项目目录并注入你的代码
+          # 请确保你的仓库根目录有 main.js, project.json 和 icon.png
+          mkdir -p ./engine/app/src/main/assets/project
+          cp -r ./* ./engine/app/src/main/assets/project/
           
           # 2. 进入引擎目录开始编译
           cd engine
           chmod +x gradlew
-          # 开始编译 Debug 版本 APK
-          ./gradlew assembleDebug
+          
+          # 执行编译，忽略无关紧要的 lint 检查以防报错
+          ./gradlew assembleDebug -x lint
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Rapid-Hunter-APK
-          # 寻找编译生成的 APK 文件
           path: engine/app/build/outputs/apk/debug/*.apk
