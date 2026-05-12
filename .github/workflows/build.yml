@@ -1,8 +1,8 @@
-name: AutoX.js Build APK
+name: AutoX Build Final
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" ] # 或者是你的主分支名
 
 jobs:
   build:
@@ -17,52 +17,16 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Install Tools
-        run: sudo apt-get update && sudo apt-get install -y p7zip-full wget curl
-
-      - name: Download AutoX Build Engine
+      - name: Build APK with Gradle
         run: |
-          # 尝试使用 wget 加上重试和重定向跟随
-          # 5.7.9 是目前最稳定的打包引擎版本
-          URL="https://github.com/kajizhang/AutoX/releases/download/v5.7.9/apk_common-v5.7.9.zip"
-          
-          echo "开始下载打包引擎..."
-          wget --tries=3 --waitretry=5 --retry-connrefused -O autox_engine.zip "$URL"
-          
-          # 检查文件大小 (必须大于 10MB 才是正常的包)
-          FILESIZE=$(stat -c%s "autox_engine.zip")
-          echo "下载完成，文件大小: $FILESIZE 字节"
-          
-          if [ $FILESIZE -lt 10485760 ]; then
-            echo "错误: 下载的文件太小，可能触发了 GitHub 的下载限制或链接失效。"
-            echo "尝试使用备用 curl 方式..."
-            curl -L -o autox_engine.zip "$URL"
-            NEW_SIZE=$(stat -c%s "autox_engine.zip")
-            if [ $NEW_SIZE -lt 10485760 ]; then
-               echo "备用方式也失败了，请检查 GitHub 仓库的 Release 链接是否正常。"
-               exit 1
-            fi
-          fi
-          
-          # 解压引擎
-          7z x autox_engine.zip -o./engine
-
-      - name: Inject Project and Build
-        run: |
-          # 1. 创建项目目录并注入你的代码
-          # 请确保你的仓库根目录有 main.js, project.json 和 icon.png
-          mkdir -p ./engine/app/src/main/assets/project
-          cp -r ./* ./engine/app/src/main/assets/project/
-          
-          # 2. 进入引擎目录开始编译
-          cd engine
+          # 给予 gradlew 执行权限
           chmod +x gradlew
-          
-          # 执行编译，忽略无关紧要的 lint 检查以防报错
+          # 开始编译，-x lint 是为了跳过不必要的代码检查，加快速度
           ./gradlew assembleDebug -x lint
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rapid-Hunter-APK
-          path: engine/app/build/outputs/apk/debug/*.apk
+          name: Rapid-Hunter-App
+          # 这是编译后 APK 存放的标准位置
+          path: app/build/outputs/apk/debug/*.apk
