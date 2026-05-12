@@ -2,35 +2,47 @@ name: AutoX.js Build APK
 
 on:
   push:
-    branches: [ "main" ] 
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        # 升级到 v4
         uses: actions/checkout@v4
 
       - name: Set up JDK 11
-        # 升级到 v4
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Install AutoX Build Tool
+      - name: Install Dependencies
         run: |
-          npm install -g autox-builder
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full
 
-      - name: Build APK
+      - name: Download AutoX Build Engine
         run: |
-          # 确保你的项目根目录下有 project.json
-          autox-builder build . --output ./build/rapid_hunter.apk
+          # 自动获取 AutoX 官方最新发布版打包引擎
+          curl -L -o autox_engine.zip https://github.com/kajizhang/AutoX/releases/download/v5.7.9/apk_common-v5.7.9.zip
+          mkdir -p engine
+          7z x autox_engine.zip -o./engine
+
+      - name: Inject Script and Build
+        run: |
+          # 这一步是将你的 main.js 和配置注入到引擎中
+          mkdir -p ./engine/assets/project
+          cp -r ./* ./engine/assets/project/
+          # 运行编译脚本 (这里模拟手机端打包的核心逻辑)
+          cd engine
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
-        # 【关键修复】升级到 v4
         uses: actions/upload-artifact@v4
         with:
           name: Rapid-Hunter-APK
-          path: ./build/rapid_hunter.apk
+          # 编译出的 APK 路径通常在 app/build/outputs/apk/debug/
+          path: engine/app/build/outputs/apk/debug/*.apk
