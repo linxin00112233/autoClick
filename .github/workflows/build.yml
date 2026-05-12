@@ -11,27 +11,46 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17 # 升级到 JDK 17 以支持新版 Gradle
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Fix Permissions and Path
+      - name: Auto-Fix Project Structure
         run: |
-          chmod +x gradlew
-          mkdir -p app/src/main/assets/project
-          [ -f main.js ] && cp main.js app/src/main/assets/project/
-          [ -f project.json ] && cp project.json app/src/main/assets/project/
-          [ -f icon.png ] && cp icon.png app/src/main/assets/project/
+          echo "=== 正在扫描仓库结构 ==="
+          ls -R
+          
+          # 1. 自动寻找并赋予 gradlew 权限
+          GRADLEW_PATH=$(find . -name gradlew | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "错误：在仓库中找不到 gradlew 文件！请确保你上传了打包引擎。"
+            exit 1
+          fi
+          chmod +x "$GRADLEW_PATH"
+          echo "已找到 gradlew: $GRADLEW_PATH"
 
-      - name: Upgrade Gradle to 8.0 # 强力升级以解决 34x 报错
+          # 2. 确保 assets 路径正确
+          # 无论你在哪创建的，我们强制在 app 子模块下建立标准路径
+          mkdir -p app/src/main/assets/project
+          
+          # 3. 智能拷贝文件
+          # 无论你的脚本在根目录还是其他地方，都拷贝到编译目录
+          find . -name "main.js" -exec cp {} app/src/main/assets/project/ \;
+          find . -name "project.json" -exec cp {} app/src/main/assets/project/ \;
+          find . -name "icon.png" -exec cp {} app/src/main/assets/project/ \;
+          
+          echo "=== 环境修复完成 ==="
+
+      - name: Upgrade Gradle to 8.0
         run: |
+          # 解决 34x 报错的关键
           ./gradlew wrapper --gradle-version 8.0
 
-      - name: Build APK with Gradle
+      - name: Build APK
         run: |
-          # 使用 --no-daemon 模式更稳定
+          # 强制指定 app 模块打包
           ./gradlew :app:assembleDebug -x lint --no-daemon
 
       - name: Upload Finished APK
