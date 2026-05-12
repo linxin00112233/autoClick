@@ -1,5 +1,6 @@
 name: Build APK
 
+# 只在 main 分支 push 时触发
 on:
   push:
     branches:
@@ -10,25 +11,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 检出代码
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # 2. 安装 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
+      # 3. 安装 Cordova
       - name: Install Cordova
         run: npm install -g cordova
 
+      # 4. 添加 Android 平台
       - name: Add Android platform
         run: cordova platform add android
 
+      # 5. 构建 debug APK
       - name: Build APK
-        run: cordova build android --release
+        run: cordova build android
 
+      # 6. 打印生成文件，确认路径
+      - name: List APK files
+        run: ls -R platforms/android/app/build/outputs/apk/
+
+      # 7. 上传 APK artifact
       - name: Upload APK
-        uses: actions/upload-artifact@v4   # 修正这里
+        uses: actions/upload-artifact@v4
         with:
-          name: AutoXApp-release-apk
-          path: platforms/android/app/build/outputs/apk/release/app-release.apk
+          name: AutoXApp-debug-apk
+          path: platforms/android/app/build/outputs/apk/debug/app-debug.apk
