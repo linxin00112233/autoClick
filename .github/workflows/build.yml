@@ -6,9 +6,7 @@ on:
 
 jobs:
   build:
-    # 【核心改动】：使用 20.04 的老系统，避开最新的 SDK 34 冲突！
-    runs-on: ubuntu-20.04 
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,7 +17,15 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: Fix Permissions and Path
+      - name: 暴力抹除 SDK 34 解决兼容报错
+        run: |
+          echo "正在删除 GitHub 服务器上过新的 SDK 34，防止旧模版解析崩溃..."
+          sudo rm -rf $ANDROID_HOME/build-tools/34.*
+          sudo rm -rf $ANDROID_HOME/platforms/android-34
+          sudo rm -rf $ANDROID_HOME/platforms/android-35
+          echo "删除完成！"
+
+      - name: 修复文件权限与路径
         run: |
           chmod +x gradlew
           mkdir -p app/src/main/assets/project
@@ -27,9 +33,9 @@ jobs:
           [ -f project.json ] && cp project.json app/src/main/assets/project/ || true
           [ -f icon.png ] && cp icon.png app/src/main/assets/project/ || true
 
-      - name: Build APK
+      - name: Build APK (使用老旧环境编译)
         run: |
-          # 在老系统里直接编译
+          # 不再强行升级 Gradle，直接用它自带的环境打包
           ./gradlew :app:assembleDebug -x lint --no-daemon
 
       - name: Upload Finished APK
