@@ -2,7 +2,7 @@ name: AutoX Build Final
 
 on:
   push:
-    branches: ["main"] # 兼容不同分支名
+    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -11,36 +11,31 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17 # 升级到 JDK 17 以支持新版 Gradle
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
-      - name: Fix Path and Permissions
+      - name: Fix Permissions and Path
         run: |
-          # 确保脚本权限
           chmod +x gradlew
-          # 确保资产目录存在（防止你漏建文件夹）
           mkdir -p app/src/main/assets/project
-          # 如果根目录有这些文件，自动同步进去
-          [ -f main.js ] && cp main.js app/src/main/assets/project/ || echo "No main.js found in root"
-          [ -f project.json ] && cp project.json app/src/main/assets/project/ || echo "No project.json found in root"
-          [ -f icon.png ] && cp icon.png app/src/main/assets/project/ || echo "No icon.png found in root"
+          [ -f main.js ] && cp main.js app/src/main/assets/project/
+          [ -f project.json ] && cp project.json app/src/main/assets/project/
+          [ -f icon.png ] && cp icon.png app/src/main/assets/project/
 
-      - name: Upgrade Gradle Environment
+      - name: Upgrade Gradle to 8.0 # 强力升级以解决 34x 报错
         run: |
-          # 升级 Gradle 版本以解决 "NumberFormatException: 34x" 的兼容性报错
-          ./gradlew wrapper --gradle-version 7.5
+          ./gradlew wrapper --gradle-version 8.0
 
       - name: Build APK with Gradle
         run: |
-          # 使用 :app:assembleDebug 强制指向主模块，跳过 lint 检查
-          ./gradlew :app:assembleDebug -x lint
+          # 使用 --no-daemon 模式更稳定
+          ./gradlew :app:assembleDebug -x lint --no-daemon
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Rapid-Hunter-App
-          # 匹配编译出的 APK
           path: app/build/outputs/apk/debug/*.apk
