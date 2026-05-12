@@ -3,7 +3,7 @@ name: Build APK
 on:
   push:
     branches:
-      - main   # 只在 main 分支提交时触发
+      - main
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
         run: cordova build android --release
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4   # 修正这里
         with:
           name: AutoXApp-release-apk
           path: platforms/android/app/build/outputs/apk/release/app-release.apk
