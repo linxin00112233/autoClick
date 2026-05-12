@@ -16,33 +16,32 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-          cache: 'gradle'
+          # 【修复】删掉 cache: 'gradle'，因为你根目录没这些文件
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y p7zip-full
+      - name: Install 7zip
+        run: sudo apt-get install -y p7zip-full
 
       - name: Download AutoX Build Engine
         run: |
-          # 自动获取 AutoX 官方最新发布版打包引擎
+          # 稳定获取 5.7.9 版本的打包模板
           curl -L -o autox_engine.zip https://github.com/kajizhang/AutoX/releases/download/v5.7.9/apk_common-v5.7.9.zip
-          mkdir -p engine
           7z x autox_engine.zip -o./engine
 
-      - name: Inject Script and Build
+      - name: Inject Project and Build
         run: |
-          # 这一步是将你的 main.js 和配置注入到引擎中
+          # 1. 将你的代码、图标、配置全部注入到引擎中
           mkdir -p ./engine/assets/project
           cp -r ./* ./engine/assets/project/
-          # 运行编译脚本 (这里模拟手机端打包的核心逻辑)
+          
+          # 2. 进入引擎目录开始编译
           cd engine
           chmod +x gradlew
+          # 开始编译 Debug 版本 APK
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Rapid-Hunter-APK
-          # 编译出的 APK 路径通常在 app/build/outputs/apk/debug/
+          # 寻找编译生成的 APK 文件
           path: engine/app/build/outputs/apk/debug/*.apk
